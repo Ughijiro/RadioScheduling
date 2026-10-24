@@ -1,0 +1,19 @@
+
+# OMNeT++ generated build files
+out/
+*.exe
+*.o
+*.obj
+*.dll
+
+# Simulation-generated files
+results/
+*.sca
+*.vec
+*.vci
+*.elog
+
+# Temporary files
+*.log
+*.tmp
+*~
