@@ -19,6 +19,13 @@ void Scheduler::initialize()
 {
     NrUsers = par("gateSize").intValue();
     NrOfChannels = 10;//read from omnetpp.ini
+
+    for (int i = 0; i < NrUsers; i++) {
+        userWeights[i] = 1;
+    }
+
+    userWeights[2] = 2; // user 2 e mai smecher
+
     selfMsg = new cMessage("selfMsg");
     for(int i=0; i<10;i++){
            q[i]=0;
@@ -42,7 +49,7 @@ void Scheduler::handleMessage(cMessage *msg)
      */
 
 
-    int userWeights[NrUsers];
+    //int userWeights[NrUsers];
     for(int i =0; i<NrUsers;i++){
 
     if (msg->arrivedOn("rxInfo", i)){
@@ -56,9 +63,35 @@ void Scheduler::handleMessage(cMessage *msg)
         if (msg == selfMsg){
 
           //here comes the scheduling algorithm !!!
-            for(int i =0;i<NrUsers;i++){
-                NrBlocks[i]=1;//you have to change this !!!
-             }
+            // Reset the number of allocated blocks
+            for (int i = 0; i < NrUsers; i++) {
+                NrBlocks[i] = 0;
+            }
+
+            // Allocate blocks to users in turns
+            int remainingBlocks = NrOfChannels;
+
+            while (remainingBlocks > 0) {
+                bool allocated = false;
+
+                for (int i = 0; i < NrUsers && remainingBlocks > 0; i++) {
+                    for (int j = 0; j < userWeights[i] && remainingBlocks > 0; j++) {
+                        if (NrBlocks[i] < q[i]) {
+                            NrBlocks[i]++;
+                            remainingBlocks--;
+                            allocated = true;
+                        }
+                    }
+                }
+
+                if (!allocated)
+                    break;
+            }
+
+            for (int i = 0; i < NrUsers; i++) {
+                EV << "User " << i << " allocated "
+                   << NrBlocks[i] << " blocks" << endl;
+            }
 
             for(int i =0;i<NrUsers;i++){
 
