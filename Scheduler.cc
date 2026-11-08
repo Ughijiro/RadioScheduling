@@ -75,6 +75,12 @@ void Scheduler::handleMessage(cMessage *msg)
                 bool allocated = false;
 
                 for (int i = 0; i < NrUsers && remainingBlocks > 0; i++) {
+
+                    // User 1 has a bad radio connection between 20 and 40 ms
+                    if (i == 1 && simTime() >= 0.020 && simTime() < 0.040) {
+                        continue;
+                    }
+
                     for (int j = 0; j < userWeights[i] && remainingBlocks > 0; j++) {
                         if (NrBlocks[i] < q[i]) {
                             NrBlocks[i]++;
