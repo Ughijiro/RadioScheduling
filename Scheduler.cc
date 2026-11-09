@@ -67,6 +67,7 @@ void Scheduler::handleMessage(cMessage *msg)
             // Reset the number of allocated blocks
             bool idealAvailable[10];
             bool realAvailable[10];
+            int realWeights[10];
 
             for (int i = 0; i < NrUsers; i++) {
                 idealAvailable[i] = true;
@@ -75,10 +76,16 @@ void Scheduler::handleMessage(cMessage *msg)
                 if (i == 1 && simTime() >= 0.020 && simTime() < 0.040) {
                     realAvailable[i] = false;
                 }
+
+                realWeights[i] = userWeights[i];
+
+                if (realAvailable[i] && lag[i] > 0) {
+                    realWeights[i]++;
+                }
             }
 
             calculateWRR(idealBlocks, idealAvailable, userWeights);
-            calculateWRR(NrBlocks, realAvailable, userWeights);
+            calculateWRR(NrBlocks, realAvailable, realWeights);
 
             for (int i = 0; i < NrUsers; i++) {
                 lag[i] += idealBlocks[i] - NrBlocks[i];
