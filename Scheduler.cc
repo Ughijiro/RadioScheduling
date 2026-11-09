@@ -27,9 +27,10 @@ void Scheduler::initialize()
     userWeights[2] = 2; // user 2 e mai smecher
 
     selfMsg = new cMessage("selfMsg");
-    for(int i=0; i<10;i++){
-           q[i]=0;
-         //  NrBlocks[i]=0;
+    for(int i = 0; i < 10; i++){
+           q[i] = 0;
+           lag[i] = 0;
+           //NrBlocks[i]=0;
     }
     scheduleAt(simTime(), selfMsg);
 
@@ -64,39 +65,31 @@ void Scheduler::handleMessage(cMessage *msg)
 
           //here comes the scheduling algorithm !!!
             // Reset the number of allocated blocks
+            bool idealAvailable[10];
+            bool realAvailable[10];
+
             for (int i = 0; i < NrUsers; i++) {
-                NrBlocks[i] = 0;
-            }
+                idealAvailable[i] = true;
+                realAvailable[i] = true;
 
-            // Allocate blocks to users in turns
-            int remainingBlocks = NrOfChannels;
-
-            while (remainingBlocks > 0) {
-                bool allocated = false;
-
-                for (int i = 0; i < NrUsers && remainingBlocks > 0; i++) {
-
-                    // User 1 has a bad radio connection between 20 and 40 ms
-                    if (i == 1 && simTime() >= 0.020 && simTime() < 0.040) {
-                        continue;
-                    }
-
-                    for (int j = 0; j < userWeights[i] && remainingBlocks > 0; j++) {
-                        if (NrBlocks[i] < q[i]) {
-                            NrBlocks[i]++;
-                            remainingBlocks--;
-                            allocated = true;
-                        }
-                    }
+                if (i == 1 && simTime() >= 0.020 && simTime() < 0.040) {
+                    realAvailable[i] = false;
                 }
+            }
 
-                if (!allocated)
-                    break;
+            calculateWRR(idealBlocks, idealAvailable, userWeights);
+            calculateWRR(NrBlocks, realAvailable, userWeights);
+
+            for (int i = 0; i < NrUsers; i++) {
+                lag[i] += idealBlocks[i] - NrBlocks[i];
             }
 
             for (int i = 0; i < NrUsers; i++) {
-                EV << "User " << i << " allocated "
-                   << NrBlocks[i] << " blocks" << endl;
+                EV << "User " << i
+                   << " Ideal: " << idealBlocks[i]
+                   << " Real: " << NrBlocks[i]
+                   << " LAG: " << lag[i]
+                   << endl;
             }
 
             for(int i =0;i<NrUsers;i++){
@@ -119,4 +112,36 @@ void Scheduler::handleMessage(cMessage *msg)
 
     }
 
+}
+
+void Scheduler::calculateWRR(int blocks[], const bool canReceive[], const int weights[])
+{
+    for (int i = 0; i < NrUsers; i++) {
+        blocks[i] = 0;
+    }
+
+    int remainingBlocks = NrOfChannels;
+
+    while (remainingBlocks > 0) {
+        bool allocated = false;
+
+        for (int i = 0; i < NrUsers && remainingBlocks > 0; i++) {
+
+            if (!canReceive[i]) {
+                continue;
+            }
+
+            for (int j = 0; j < weights[i] && remainingBlocks > 0; j++) {
+                if (blocks[i] < q[i]) {
+                    blocks[i]++;
+                    remainingBlocks--;
+                    allocated = true;
+                }
+            }
+        }
+
+        if (!allocated) {
+            break;
+        }
+    }
 }
